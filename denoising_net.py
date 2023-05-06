@@ -117,62 +117,71 @@ class Net(nn.Module):
     #     return _tmp
 
 
-image_index = 9
-show_every = 30
-energy_threshold = 700
-experiment_type = 'ground_truth_approximation'
-output_path = f'results/image_{image_index}/{experiment_type}'
 
-NN = Net().to(dev)
+noise_stds = [0.05, 0.10, 0.15]
+std_strings = ['0.05', '0.10', '0.15']
+energy_thresholds = [2000, 7000, 10500]
+image_type = 'synthetic_images'
+for index in range(3):
+    noise_std = noise_stds[index]
+    std_string = std_strings[index]
+    energy_threshold = energy_thresholds[index]
 
-img_cpu = _utils.load_normalized_image(f'natural_images_selection/img_{image_index}')
-img = img_cpu.to(dev)
-# _utils.plot_simple_image(img, 'test_image')
-# img_noise = torch.from_numpy(_utils.add_gaussian_noise(
-#     img, 0, 0.15).transpose(2, 0, 1).astype('float32'))[None, :].to(dev)
-noise_mask = torch.from_numpy(np.random.uniform(
-    0, 0.1, size=(32, 512, 512)).astype('float32'))[None, :].to(dev)
+    experiment_type = f'noisy_image_approximation/std_{std_string}'
 
-# # Define training loop
-n_it = 2400  # @param {type:"number"}
-lr = 1e-2  # @param {type:"number"}
+    for image_index in list(range(8)):
+        show_every = 30
+        output_path = f'results/{image_type}/image_{image_index}/{experiment_type}'
+
+        NN = Net().to(dev)
+        img_cpu =_utils.add_gaussian_noise(_utils.load_normalized_image(f'{image_type}_selection/img_{image_index}'), 0, noise_std)
+        img = img_cpu.to(dev)
+        # _utils.plot_simple_image(img, 'test_image')
+        # img_noise = torch.from_numpy(_utils.add_gaussian_noise(
+        #     img, 0, 0.15).transpose(2, 0, 1).astype('float32'))[None, :].to(dev)
+        noise_mask = torch.from_numpy(np.random.uniform(
+            0, 0.1, size=(32, 512, 512)).astype('float32'))[None, :].to(dev)
+
+        # # Define training loop
+        n_it = 2400  # @param {type:"number"}
+        lr = 1e-2  # @param {type:"number"}
 
 
-def cost(u: torch.Tensor):
-    return (img - u).square().sum()
+        def cost(u: torch.Tensor):
+            return (img - u).square().sum()
 
-energy_log = []
-psnr_log = []
-ssim_log = []
+        energy_log = []
+        psnr_log = []
+        ssim_log = []
 
-opt = torch.optim.Adam(NN.parameters(), lr=lr)
-for i in range(n_it):
-    opt.zero_grad()
-    # u_hat = NN(_utils.add_gaussian_noise(noise_mask, 0, 0.1).to(dev))
-    u_hat = NN(noise_mask)
-    u_hat_clipped = np.clip(a=u_hat.cpu().detach()[0].numpy(), a_min=0.0, a_max=1.0) # ensure well-posedness of SSIM and PSNR 
+        opt = torch.optim.Adam(NN.parameters(), lr=lr)
+        for i in range(n_it):
+            opt.zero_grad()
+            # u_hat = NN(_utils.add_gaussian_noise(noise_mask, 0, 0.1).to(dev))
+            u_hat = NN(noise_mask)
+            u_hat_clipped = np.clip(a=u_hat.cpu().detach()[0].numpy(), a_min=0.0, a_max=1.0) # ensure well-posedness of SSIM and PSNR 
 
-    energy = cost(u_hat)
-    energy_log.append(energy.cpu().detach().numpy())
-    psnr_log.append(psnr(image_true=img_cpu.numpy(), image_test=u_hat_clipped, data_range=1.0))
-    ssim_log.append(ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0))
-    print(f'{i}: {energy_log[-1]}')
-    
-    
+            energy = cost(u_hat)
+            energy_log.append(energy.cpu().detach().numpy())
+            psnr_log.append(psnr(image_true=img_cpu.numpy(), image_test=u_hat_clipped, data_range=1.0))
+            ssim_log.append(ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0))
+            print(f'{i}: {energy_log[-1]}')
+            
+            
 
-    if i % show_every == 0 or energy_log[-1] < energy_threshold:
-        _utils.plot_simple_image(u_hat.cpu().detach()[0].numpy(), f'{output_path}/image_approximation_it{i}')
-        _, img_ssim = ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0, full=True)
-        _utils.plot_simple_image(img_ssim, f'{output_path}/image_ssim_it{i}')
+            if i % show_every == 0 or energy_log[-1] < energy_threshold:
+                _utils.plot_simple_image(u_hat.cpu().detach()[0].numpy(), f'{output_path}/image_approximation_it{i}')
+                _, img_ssim = ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0, full=True)
+                _utils.plot_simple_image(img_ssim, f'{output_path}/image_ssim_it{i}')
 
-        if energy_log[-1] < energy_threshold:
-            break
-    energy.backward()
-    opt.step()
+                if energy_log[-1] < energy_threshold:
+                    break
+            energy.backward()
+            opt.step()
 
-# gather results and save
-df = pd.DataFrame()
-df['energy'] = energy_log
-df['ssim_indices'] = ssim_log
-df['psnr_indices'] = psnr_log
-df.to_csv(f'{output_path}/execution_log.csv', index=None)
+        # gather results and save
+        df = pd.DataFrame()
+        df['energy'] = energy_log
+        df['ssim_indices'] = ssim_log
+        df['psnr_indices'] = psnr_log
+        df.to_csv(f'{output_path}/execution_log.csv', index=None)
