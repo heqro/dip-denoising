@@ -1,0 +1,5 @@
+Anaconda*
+main.py 
+results/*/image_*/*/*.png
+__pycache__
+experiments.md
