@@ -1,14 +1,5 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from torch import nn
-import _utils
-
-# import metrics
-from skimage.metrics import structural_similarity as ssim, peak_signal_noise_ratio as psnr
-
-# logging utilities
-import pandas as pd
 
 # adjust for using the last GPU
 import os
@@ -21,7 +12,6 @@ dev = torch.device(
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
-
 
 class Net(nn.Module):
     def __init__(self):
@@ -117,61 +107,3 @@ class Net(nn.Module):
     #     return _tmp
 
 
-
-image_type = 'synthetic_images'
-experiment_type = f'ground_truth_approximation'
-energy_threshold = 700
-
-for image_index in list(range(8)):
-    show_every = 30
-    output_path = f'results/{image_type}/image_{image_index}/{experiment_type}'
-
-    NN = Net().to(dev)
-    img_cpu =_utils.load_normalized_image(f'{image_type}_selection/img_{image_index}')
-    img = img_cpu.to(dev)
-    noise_mask = torch.from_numpy(np.random.uniform(
-        0, 0.1, size=(32, 512, 512)).astype('float32'))[None, :].to(dev)
-
-    # # Define training loop
-    n_it = 2400  # @param {type:"number"}
-    lr = 1e-2  # @param {type:"number"}
-
-
-    def cost(u: torch.Tensor):
-        return (img - u).square().sum()
-
-    energy_log = []
-    psnr_log = []
-    ssim_log = []
-
-    opt = torch.optim.Adam(NN.parameters(), lr=lr)
-    for i in range(n_it):
-        opt.zero_grad()
-        # u_hat = NN(_utils.add_gaussian_noise(noise_mask, 0, 0.1).to(dev))
-        u_hat = NN(noise_mask)
-        u_hat_clipped = np.clip(a=u_hat.cpu().detach()[0].numpy(), a_min=0.0, a_max=1.0) # ensure well-posedness of SSIM and PSNR 
-
-        energy = cost(u_hat)
-        energy_log.append(energy.cpu().detach().numpy())
-        psnr_log.append(psnr(image_true=img_cpu.numpy(), image_test=u_hat_clipped, data_range=1.0))
-        ssim_log.append(ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0))
-        print(f'{i}: {energy_log[-1]}')
-        
-        
-
-        if i % show_every == 0 or energy_log[-1] < energy_threshold:
-            _utils.plot_simple_image(u_hat.cpu().detach()[0].numpy(), f'{output_path}/image_approximation_it{i}')
-            _, img_ssim = ssim(img_cpu.numpy(), u_hat_clipped, data_range=1.0, channel_axis=0, full=True)
-            _utils.plot_simple_image(img_ssim, f'{output_path}/image_ssim_it{i}')
-
-            if energy_log[-1] < energy_threshold:
-                break
-        energy.backward()
-        opt.step()
-
-    # gather results and save
-    df = pd.DataFrame()
-    df['energy'] = energy_log
-    df['ssim_indices'] = ssim_log
-    df['psnr_indices'] = psnr_log
-    df.to_csv(f'{output_path}/execution_log.csv', index=None)

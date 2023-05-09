@@ -1,7 +1,11 @@
 Anaconda*
 main.py 
-results/*/image_*/*/*/*.png
-results/*/image_*/*/*.png
+results/*/*/*/*/*.png
+results/*/*/*/*.png
 __pycache__
 experiments.md
 code_excerpts
+_experiments.py
+.gitignore
+_generate_video.py
+images_list.txt
