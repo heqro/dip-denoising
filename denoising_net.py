@@ -1,4 +1,5 @@
 import torch
+import torch.backends.cudnn
 from torch import nn
 
 # adjust for using the last GPU
@@ -26,9 +27,9 @@ class Net(nn.Module):
             ))
 
         # define "double-convolution" downsampling modules
-        self.double_convs = nn.ModuleList()
+        self.downsamplers = nn.ModuleList()
         for channels_in in [32] + [128] * 4:
-            self.double_convs.append(nn.Sequential(
+            self.downsamplers.append(nn.Sequential(
                 nn.ReflectionPad2d((1, 1, 1, 1)),
                 nn.Conv2d(
                     channels_in, 128, kernel_size=(3, 3), stride=(2, 2), device=dev),
@@ -42,7 +43,7 @@ class Net(nn.Module):
             ))
 
         # define "post-concatenation" processing modules
-        self.convs_after_concat = nn.ModuleList()
+        self.upsamplers = nn.ModuleList()
         for i in range(5):
             module = nn.Sequential(
                 nn.BatchNorm2d(132, device=dev),
@@ -63,47 +64,28 @@ class Net(nn.Module):
                 module.append(
                     nn.Conv2d(128, 3, kernel_size=(1, 1), device=dev))
                 module.append(nn.Sigmoid())
-            self.convs_after_concat.append(module)
+            self.upsamplers.append(module)
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        skip_z = self.skips[0](z)
-        x1 = self.double_convs[0](z)
-        skip_x1 = self.skips[1](x1)
-        x2 = self.double_convs[1](x1)
-        skip_x2 = self.skips[2](x2)
-        x3 = self.double_convs[2](x2)
-        skip_x3 = self.skips[3](x3)
-        x4 = self.double_convs[3](x3)
-        skip_x4 = self.skips[4](x4)
-        x5 = self.double_convs[4](x4)
+        x1 = self.downsamplers[0](z)
+        x2 = self.downsamplers[1](x1)
+        x3 = self.downsamplers[2](x2)
+        x4 = self.downsamplers[3](x3)
+        x5 = self.downsamplers[4](x4)
 
-        y5 = self.convs_after_concat[4](torch.cat([skip_x4, nn.Upsample(scale_factor=2.0,
-                                                                        mode='bilinear')(x5)], dim=1))
-        y4 = self.convs_after_concat[3](torch.cat([skip_x3, y5], dim=1))
-        y3 = self.convs_after_concat[2](torch.cat([skip_x2, y4], dim=1))
-        y2 = self.convs_after_concat[1](torch.cat([skip_x1, y3], dim=1))
-        y1 = self.convs_after_concat[0](torch.cat([skip_z, y2], dim=1))
+        s1 = self.skips[0](z)
+        s2 = self.skips[1](x1)
+        s3 = self.skips[2](x2)
+        s4 = self.skips[3](x3)
+        s5 = self.skips[4](x4)
 
-        return y1
+        y5 = torch.cat([s5, nn.Upsample(scale_factor=2.0, mode='bilinear')(x5)], dim=1)
+        y4 = self.upsamplers[4](y5)
+        y3 = self.upsamplers[3](torch.cat([s4, y4], dim=1))
+        y2 = self.upsamplers[2](torch.cat([s3, y3], dim=1))
+        y1 = self.upsamplers[1](torch.cat([s2, y2], dim=1))
+        y = self.upsamplers[0](torch.cat([s1, y1], dim=1))
 
-    # def forward(self, z: torch.Tensor):
-    #     skips = []
-    #     x_vec = []
-    #     x = z
-    #     for i in range(5):
-    #         skips.append(self.skips[i](x))
-    #         x = self.double_convs[i](x)
-    #         x_vec.append(x)
-    #
-    #     _tmp = self.convs_after_concat[4](
-    #         torch.cat([
-    #             skips[4], nn.Upsample(scale_factor=2.0, mode='bilinear')(x_vec[4])],
-    #             dim=1))
-    #
-    #     for i in reversed(range(4)):
-    #         _tmp = self.convs_after_concat[i](
-    #             torch.cat([skips[i], x_vec[i]], dim=1))
-    #
-    #     return _tmp
+        return y
 
 

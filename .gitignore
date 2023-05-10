@@ -9,3 +9,5 @@ _experiments.py
 .gitignore
 _generate_video.py
 images_list.txt
+.vscode/settings.json
+_approximations.py
