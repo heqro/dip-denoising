@@ -1,6 +1,6 @@
 # dip-denoising
 
-## Natural image approximation
+## Natural image approximation (img_0 in our repo)
 
 Iterations:
 
@@ -40,7 +40,7 @@ Iterations:
 3600-
 ![image_approximation_it3600](https://github.com/heqro/dip-denoising/assets/58432067/67bdfa4f-3d3a-4547-b03a-1d94effeb1df)
 
-## Synthetic image approximation
+## Synthetic image approximation (img_2 in our repo)
 
 Iterations:
 
