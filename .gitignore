@@ -12,3 +12,5 @@ images_list.txt
 .vscode/settings.json
 _approximations.py
 results/natural_images/image_0/just_testing/execution_log.csv
+_generate_graphs.py
+_generate_data.py
