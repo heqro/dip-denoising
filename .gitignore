@@ -14,3 +14,5 @@ _approximations.py
 results/natural_images/image_0/just_testing/execution_log.csv
 _generate_graphs.py
 _generate_data.py
+results/natural_images/image_11/denoising_long*
+results/natural_images/image_11/patch*/std_0.05
