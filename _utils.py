@@ -2,7 +2,6 @@ import torch
 import torchvision
 
 def __load_image__(path: str, mode: torchvision.io.ImageReadMode):
-    import torchvision
     return torchvision.io.read_image(path, mode) / 255
 
 def load_rgb_image(path: str):
@@ -10,6 +9,11 @@ def load_rgb_image(path: str):
 
 def load_gray_image(path: str):
     return __load_image__(path, torchvision.io.image.ImageReadMode.GRAY)
+
+def crop_image(img, d=32):
+    new_height = img.shape[1] - img.shape[1] % d
+    new_width = img.shape[2] - img.shape[2] % d
+    return img[:, :new_height, :new_width]
 
 def add_gaussian_noise(img, avg: float, std: float) -> torch.Tensor:
     import numpy as np

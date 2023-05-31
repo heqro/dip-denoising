@@ -17,3 +17,10 @@ _generate_data.py
 results/natural_images/image_11/denoising_long*
 results/natural_images/image_11/patch*/std_0.05
 full_log
+_experiments2.py
+.gitignore
+_image_tools.py
+.gitignore
+_generate_values.py
+synthetic_images_results_summary.csv
+natural_images_results_summary.csv
