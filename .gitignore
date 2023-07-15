@@ -24,3 +24,5 @@ _image_tools.py
 _generate_values.py
 synthetic_images_results_summary.csv
 natural_images_results_summary.csv
+_cli_experiments_generator.py
+.gitignore
