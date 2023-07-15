@@ -15,7 +15,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, n_channels_output: int = 3):
         super().__init__()
         # define skip connections processing modules
         self.skips = nn.ModuleList()
@@ -62,7 +62,7 @@ class Net(nn.Module):
             else:  # last layer
                 # module.append(nn.ReflectionPad2d((0, 0, 0, 0)))
                 module.append(
-                    nn.Conv2d(128, 3, kernel_size=(1, 1), device=dev))
+                    nn.Conv2d(128, n_channels_output, kernel_size=(1, 1), device=dev))
                 module.append(nn.Sigmoid())
             self.upsamplers.append(module)
 
