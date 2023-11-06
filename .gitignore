@@ -1,6 +1,7 @@
 Anaconda*
 main.py 
-results/*/*/*/*/*.png
+results/*/*/denoising_fidelity/*/*.png
+results/*/*/patch*/*/*.png
 results/*/*/*/*.png
 __pycache__
 experiments.md
@@ -25,4 +26,10 @@ _generate_values.py
 synthetic_images_results_summary.csv
 natural_images_results_summary.csv
 _cli_experiments_generator.py
-.gitignore
+_cool_plots/*
+odesolv*
+hello*
+interpo*
+test_num*
+test_approx*
+_scratchbook.ipynb
