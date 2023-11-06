@@ -19,7 +19,7 @@ class Net(nn.Module):
         super().__init__()
         # define skip connections processing modules
         self.skips = nn.ModuleList()
-        for channels_in in [32] + [128] * 4:
+        for channels_in in [3] + [128] * 4:
             self.skips.append(nn.Sequential(
                 nn.Conv2d(channels_in, 4, kernel_size=(1, 1), device=dev),
                 nn.BatchNorm2d(4, device=dev),
@@ -28,7 +28,7 @@ class Net(nn.Module):
 
         # define "double-convolution" downsampling modules
         self.downsamplers = nn.ModuleList()
-        for channels_in in [32] + [128] * 4:
+        for channels_in in [3] + [128] * 4:
             self.downsamplers.append(nn.Sequential(
                 nn.ReflectionPad2d((1, 1, 1, 1)),
                 nn.Conv2d(
